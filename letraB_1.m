@@ -43,8 +43,24 @@ Td = SE3(Rd, double(pds(contf)));
 rpyd = rotm2eul(Rd);
 
 
-%%%%
+%%%% Controle
 
 T = i120.fkine(q);
 
 J = i120.jacob0(q, 'rpy');
+
+p = trans1(T);
+pd = double(pds(contf));
+p_til = pd - p;
+
+R = SO3(T);
+R = R.R();
+
+rpy = rotm2eul(R);
+rpy_til = rpyd - rpy;
+
+e = [p_til'; rpy_til'];
+
+pddot = [double(pddots(contf)) 0 0 0]
+
+u = pinv(J)*pddot' + lambda*e);
