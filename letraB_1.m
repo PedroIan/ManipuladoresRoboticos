@@ -64,3 +64,5 @@ e = [p_til'; rpy_til'];
 pddot = [double(pddots(contf)) 0 0 0]
 
 u = pinv(J)*pddot' + lambda*e);
+
+i120.plot(q)
