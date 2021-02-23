@@ -6,7 +6,7 @@ L(1) = Revolute('d', .290, 'alpha', -pi/2, 'qlim', (11/12)*[-pi pi]);
 L(2) = Revolute('a', .270, 'offset', -pi/2, 'qlim', (11/18)*[-pi pi]);
 L(3) = Revolute('a', .070, 'alpha', -pi/2, 'qlim', [-(11/18)*pi (7/18)*pi]);
 L(4) = Revolute('d', 0.302, 'alpha', pi/2, 'qlim', (8/9)*[-pi pi]);
-L(5) = Revolute('alpha', -pi/2, 'qlim', (2/3*[-pi pi]));
+L(5) = Revolute('alpha', -pi/2, 'qlim', (2/3)*[-pi pi]);
 L(6) = Revolute('d', .072, 'offset', pi, 'qlim', (20/9)*[-pi pi]);
 
 i120 = SerialLink(L, 'name', 'IRB 120')
@@ -44,12 +44,13 @@ rpyd = rotm2eul(Rd);
 
 
 %%%% Controle
+desiredPosition = [0.38 .38 .5 0 0 0];
 
-T = i120.fkine(q);
+T = i120.fkine(desiredPosition);
 
 J = i120.jacob0(q, 'rpy');
 
-p = trans1(T);
+p = transl(T);
 pd = double(pds(contf));
 p_til = pd - p;
 
@@ -63,6 +64,10 @@ e = [p_til'; rpy_til'];
 
 pddot = [double(pddots(contf)) 0 0 0]
 
-u = pinv(J)*pddot' + lambda*e);
+u = pinv(J)*pddot' + lambda*e;
+
+
 
 i120.plot(q)
+hold on
+T.plot(desiredPosition)
