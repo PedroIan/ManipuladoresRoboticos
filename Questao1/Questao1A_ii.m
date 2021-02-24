@@ -1,6 +1,13 @@
+clc
+clear
+close all
+
+run('./rvctools/startup.m')
+
 syms t;
 
-%%
+
+%% Inicialização dos Parâmetros
 
 L(1) = Revolute('d', .290, 'alpha', -pi/2, 'qlim', (11/12)*[-pi pi]);
 L(2) = Revolute('a', .270, 'offset', -pi/2, 'qlim', (11/18)*[-pi pi]);
@@ -24,23 +31,10 @@ T = i120.fkine(desiredPosition);
 J = i120.jacob0(q, 'rpy');
 
 p = transl(T);
-pd = double(pds(contf));
-p_til = pd - p;
 
 R = SO3(T);
 R = R.R();
 
-rpy = rotm2eul(R);
-rpy_til = rpyd - rpy;
-
-e = [p_til'; rpy_til'];
-
-pddot = [double(pddots(contf)) 0 0 0]
-
-u = pinv(J)*pddot' + lambda*e;
-
-
-
-i120.plot(q)
+i120.plot(desiredPosition)
 hold on
 T.plot(desiredPosition)
