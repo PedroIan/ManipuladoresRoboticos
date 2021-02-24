@@ -2,7 +2,7 @@ clc
 clear
 close all
 
-run('./rvctools/startup.m')
+% run('./rvctools/startup.m')
 
 syms t;
 
@@ -18,13 +18,13 @@ L(6) = Revolute('d', .072, 'offset', pi, 'qlim', (20/9)*[-pi pi]);
 
 i120 = SerialLink(L, 'name', 'IRB 120')
 
-q = [0 0 0 0 -pi/2 0];
+q = [0 0 0];
 
 qdot_lim = pi*[25/18 25/18 25/18 16/9 16/9 7/3];
 
 %% Controle
 
-desiredPosition = [0.38 .38 .5 0 0 0];
+desiredPosition = [0.38 .38 .5];
 
 T = i120.fkine(desiredPosition);
 
