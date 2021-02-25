@@ -21,7 +21,9 @@ ganho = 0.8;
 epsilon = 2e-2;
 
 e_ant = 1;
-e = 0; 
+e = 1; 
+
+q = [0 0 0 0 -pi / 2 0];
 
 %%
 
@@ -33,19 +35,24 @@ rpyd = rotm2eul(Rd);
 
 Td.plot('rgb')
 
-%% Isso não tem nada a ver com o código do monitor. Daqui pra baixo é igual ao código da questão 1A_ii
+%% Controle
 
-i = 0
+i = 0;
 
 testeTic = tic;
 
-while (norm(e - e_ant) > epsilon) % Crit�rio de parada
+while (norm(e) > epsilon) % Crit�rio de parada
     J = i120.jacob0(q, 'rpy'); % Jacobiana geom�trica
     T = i120.fkine(q); % Cinem�tica direta para pegar a pose do efetuador 
     p = transl(T); % Transla��o do efetuador
     R = SO3(T); 
-    R = R.R(); % Extrai rota��o do efetuador
+    R = R.R; % Extrai rota��o do efetuador
     i = i+1; % contador
+    
+    rpy = rotm2eul(R);
+    
+    rpy_til = rpyd - rpy;
+    
     
     p_err = pd-p; % Erro de transla��o
     
@@ -53,7 +60,7 @@ while (norm(e - e_ant) > epsilon) % Crit�rio de parada
     nphi_err = nphi(1:3)*nphi(4); % Erro de rota��o (n*phi)
     
     e_ant = e;
-    e = [p_err'; nphi_err']; % Vetor de erro
+    e = [p_err'; rpy_til']; % Vetor de erro
     
     u = pinv(J)*ganho*e; % Lei de controle
 
@@ -69,3 +76,18 @@ while (norm(e - e_ant) > epsilon) % Crit�rio de parada
 end
 hold off
 
+
+figure(2)
+hold on
+for i = 1:6
+    plot(control_sig(i,:))
+end
+hold off
+xlabel('Itera��es')
+ylabel('Sinal de controle: u(rad/s)')
+
+figure(3)
+plot(err)
+xlabel('Itera��es')
+ylabel('Norma do erro: |e|')
+box off

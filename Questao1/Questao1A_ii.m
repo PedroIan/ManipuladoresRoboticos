@@ -30,7 +30,7 @@ posicaoDesejada = [0.38 .38 .5 0 0 0];
 T = i120.fkine(posicaoDesejada); % Pega pose desejada do efetuador 
 pd = transl(T); % Pega vetor de transla��o do efetuador
 Rd = SO3(T); % Pega o objeto SO3 correspondente � rota��o do efetuador
-Rd = Rd.R(); %Pega matriz de rota��o do efetuador
+Rd = Rd.R; %Pega matriz de rota��o do efetuador
 
 ganho = 0.8;
 epsilon = 2e-2;
@@ -55,7 +55,7 @@ while (norm(e - e_ant) > epsilon) % Crit�rio de parada
     T = i120.fkine(q); % Cinem�tica direta para pegar a pose do efetuador 
     p = transl(T); % Transla��o do efetuador
     R = SO3(T); 
-    R = R.R(); % Extrai rota��o do efetuador
+    R = R.R; % Extrai rota��o do efetuador
     i = i+1; % contador
     
     p_err = pd-p; % Erro de transla��o
