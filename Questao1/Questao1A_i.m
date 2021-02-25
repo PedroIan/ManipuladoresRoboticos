@@ -30,13 +30,13 @@ posicaoDesejada = [0.38 .38 .5 0 0 0];
 T = i120.fkine(posicaoDesejada); % Pega pose desejada do efetuador 
 pd = transl(T); % Pega vetor de transla��o do efetuador
 Rd = SO3(T); % Pega o objeto SO3 correspondente � rota��o do efetuador
-Rd = Rd.R(); %Pega matriz de rota��o do efetuador
+Rd = Rd.R; %Pega matriz de rota��o do efetuador
 
 ganho = 0.8;
 epsilon = 2e-2;
 
 e_ant = 1;
-e = 0; 
+e = 1; 
 
 %% Aplicação do Controle
 
@@ -50,13 +50,13 @@ i = 0
 
 testeTic = tic;
 
-while (norm(e - e_ant) > epsilon) % Crit�rio de parada
+while (norm(e) > epsilon) % Crit�rio de parada
     JCompleta = i120.jacob0(q, 'rpy'); % Jacobiana geom�trica
     J = JCompleta(1:3,:)
     T = i120.fkine(q); % Cinem�tica direta para pegar a pose do efetuador 
     p = transl(T); % Transla��o do efetuador
     R = SO3(T); 
-    R = R.R(); % Extrai rota��o do efetuador
+    R = R.R; % Extrai rota��o do efetuador
     i = i+1; % contador
     
     p_err = pd-p; % Erro de transla��o
@@ -66,8 +66,10 @@ while (norm(e - e_ant) > epsilon) % Crit�rio de parada
     
     e_ant = e;
     e = [p_err'; nphi_err']; % Vetor de erro
+
+    e = e(1:3,:);
     
-    u = pinv(J)*ganho*e(1:3,:); % Lei de controle
+    u = pinv(J)*ganho*e; % Lei de controle
 
     dt = toc(testeTic);
     testeTic = tic;
