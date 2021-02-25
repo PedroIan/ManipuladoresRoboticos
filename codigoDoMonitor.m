@@ -27,8 +27,11 @@ q = [0 0 0 0 -pi / 2 0];
 
 %%
 
-pd = [.38 .38 .5];
-Rd = SO3();
+posicaoDesejada = [.38 .38 .5 0 0 0];
+T = i120.fkine(posicaoDesejada);
+
+pd = transl(T);
+Rd = SO3(T);
 Rd = Rd.R;
 Td = SE3(Rd, pd);
 rpyd = rotm2eul(Rd);

@@ -23,7 +23,7 @@ qdot_lim = pi*[25/18 25/18 25/18 16/9 16/9 7/3];
 
 wn = pi / 10;
 
-pds(t) = [0.05*sin(wn*t)+.428 .200 .05*cos(wn*t)+.669];
+pds(t) = [0.05*sin(wn*t)+.428 .200 .05*cos(wn*t)+.669 0 0 0];
 
 
 pddots = diff(pds);
@@ -42,7 +42,7 @@ Rd = SO3;
 
 Rd = Rd.R();
 
-Td = SE3(Rd, double(pds(contf)));
+%Td = SE3(Rd, double(pds(contf)));
 
 rpyd = rotm2axang(Rd);
 
@@ -62,7 +62,7 @@ while (norm(e) > epsilon) % Crit�rio de parada
     R = R.R(); % Extrai rota��o do efetuador
     i = i+1; % contador
     
-    p_err = pd-p; % Erro de transla��o
+    p_err = pds(testeTic)-p; % Erro de transla��o
     
     nphi = rotm2axang(Rd*R'); 
     nphi_err = nphi(1:3)*nphi(4); % Erro de rota��o (n*phi)
