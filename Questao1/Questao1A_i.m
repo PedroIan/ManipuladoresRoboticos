@@ -27,7 +27,7 @@ posicaoInicial = [0 0 0 0 -pi / 2 0];
 
 posicaoDesejada = [0.38 .38 .5 0 0 0];
 
-T = i120.fkine(posicaoDesejada); % Pega pose desejada do efetuador 
+T = i120.fkine(posicaoDesejada); % Pega pose desejada do efetuador
 pd = transl(T); % Pega vetor de transla��o do efetuador
 Rd = SO3(T); % Pega o objeto SO3 correspondente � rota��o do efetuador
 Rd = Rd.R; %Pega matriz de rota��o do efetuador
@@ -36,60 +36,59 @@ ganho = 0.8;
 epsilon = 2e-2;
 
 e_ant = 1;
-e = 1; 
+e = 1;
 
 %% Aplicação do Controle
-
 
 figure(1)
 i120.plot(q); % Plot rob� na configura��o inicial
 hold on
-T.plot('rgb') % Plot pose desejada
+T.plot('rgb')% Plot pose desejada
 %%
 i = 0
 
 testeTic = tic;
 
-while (norm(e) > epsilon) % Crit�rio de parada
+while (norm(e) > epsilon)% Crit�rio de parada
     JCompleta = i120.jacob0(q, 'rpy'); % Jacobiana geom�trica
-    J = JCompleta(1:3,:)
-    T = i120.fkine(q); % Cinem�tica direta para pegar a pose do efetuador 
+    J = JCompleta(1:3, :)
+    T = i120.fkine(q); % Cinem�tica direta para pegar a pose do efetuador
     p = transl(T); % Transla��o do efetuador
-    R = SO3(T); 
+    R = SO3(T);
     R = R.R; % Extrai rota��o do efetuador
-    i = i+1; % contador
-    
-    p_err = pd-p; % Erro de transla��o
-    
-    nphi = rotm2axang(Rd*R'); 
-    nphi_err = nphi(1:3)*nphi(4); % Erro de rota��o (n*phi)
-    
+    i = i + 1; % contador
+
+    p_err = pd - p; % Erro de transla��o
+
+    nphi = rotm2axang(Rd * R');
+    nphi_err = nphi(1:3) * nphi(4); % Erro de rota��o (n*phi)
+
     e_ant = e;
     e = [p_err'; nphi_err']; % Vetor de erro
 
-    e = e(1:3,:);
-    
-    u = pinv(J)*ganho*e; % Lei de controle
+    e = e(1:3, :);
+
+    u = pinv(J) * ganho * e; % Lei de controle
 
     dt = toc(testeTic);
     testeTic = tic;
 
-    q = q + dt*u'; % C�lculo de posicaoInicial (Regra do trap�zio)
-    
+    q = q + dt * u'; % C�lculo de posicaoInicial (Regra do trap�zio)
+
     i120.plot(q);
-    control_sig(:,1) = u; % Sinal de controle
+    control_sig(:, 1) = u; % Sinal de controle
     err(i) = norm(e); % Norma do erro
     norm(e)
 end
+
 hold off
 
 %% Plot sinal de controle e norma do erro
 
 figure(2)
 hold on
-for i = 1:6
-    plot(control_sig(i,:))
-end
+plot(control_sig(:, 1))
+
 hold off
 xlabel('Itera��es')
 ylabel('Sinal de controle: u(rad/s)')

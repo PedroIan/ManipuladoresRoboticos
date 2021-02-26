@@ -55,7 +55,7 @@ i = 0
 
 testeTic = tic;
 
-while (norm(e) > epsilon) % Crit�rio de parada
+while (norm(e) > epsilon | i < 100) % Crit�rio de parada
     J = i120.jacob0(q, 'rpy'); % Jacobiana geom�trica
     T = i120.fkine(q); % Cinem�tica direta para pegar a pose do efetuador 
     p = transl(T); % Transla��o do efetuador
@@ -93,9 +93,8 @@ hold off
 
 figure(2)
 hold on
-for i = 1:6
-    plot(control_sig(i,:))
-end
+plot(control_sig(:, 1))
+
 hold off
 xlabel('Itera��es')
 ylabel('Sinal de controle: u(rad/s)')
