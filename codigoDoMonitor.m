@@ -44,12 +44,12 @@ i = 0;
 
 testeTic = tic;
 
-while (norm(e) > epsilon) % Crit�rio de parada
-    J = i120.jacob0(q, 'rpy'); % Jacobiana geom�trica
-    T = i120.fkine(q); % Cinem�tica direta para pegar a pose do efetuador 
-    p = transl(T); % Transla��o do efetuador
+while (norm(e) > epsilon) % Critério de parada
+    J = i120.jacob0(q, 'rpy'); % Jacobiana geométrica
+    T = i120.fkine(q); % Cinemática direta para pegar a pose do efetuador 
+    p = transl(T); % translação do efetuador
     R = SO3(T); 
-    R = R.R; % Extrai rota��o do efetuador
+    R = R.R; % Extrai rotação do efetuador
     i = i+1; % contador
     
     rpy = rotm2eul(R);
@@ -57,10 +57,10 @@ while (norm(e) > epsilon) % Crit�rio de parada
     rpy_til = rpyd - rpy;
     
     
-    p_err = pd-p; % Erro de transla��o
+    p_err = pd-p; % Erro de translação
     
     nphi = rotm2axang(Rd*R'); 
-    nphi_err = nphi(1:3)*nphi(4); % Erro de rota��o (n*phi)
+    nphi_err = nphi(1:3)*nphi(4); % Erro de rotação (n*phi)
     
     e_ant = e;
     e = [p_err'; rpy_til']; % Vetor de erro
@@ -70,7 +70,7 @@ while (norm(e) > epsilon) % Crit�rio de parada
     dt = toc(testeTic);
     testeTic = tic;
 
-    q = q + dt*u'; % C�lculo de posicaoInicial (Regra do trap�zio)
+    q = q + dt*u'; % C�lculo de posicaoInicial (Regra do trapézio)
     
     i120.plot(q);
     control_sig(:,1) = u; % Sinal de controle

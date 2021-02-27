@@ -14,44 +14,44 @@ mdl_puma560
 
 % Controle
 
-thetad = [57.6 18.9 -70.2 72.8 56 16]'; % Define configuração desejada
+thetad = [57.6 18.9 -70.2 72.8 56 16]'; % Define configuraÃ§Ã£o desejada
 T = p560.fkine(thetad); % Pega pose desejada do efetuador 
-pd = transl(T); % Pega vetor de translação do efetuador
-Rd = SO3(T); % Pega o objeto SO3 correspondente à rotação do efetuador
-Rd = Rd.R(); %Pega matriz de rotação do efetuador
+pd = transl(T); % Pega vetor de translaÃ§Ã£o do efetuador
+Rd = SO3(T); % Pega o objeto SO3 correspondente ï¿½ rotaÃ§Ã£o do efetuador
+Rd = Rd.R(); %Pega matriz de rotaÃ§Ã£o do efetuador
 
 K = 1; % Define ganho
-epsilon = 10e-5; % Define critério de parada
+epsilon = 10e-5; % Define CritÃ©rio de parada
 e_ant = 1;
 e = 0; 
 
 i = 0;
-theta = [0 0 0 0 0 0]'; % Define configuração inicial do robô
+theta = [0 0 0 0 0 0]'; % Define configuraÃ§Ã£o inicial do robÃ´
 
 figure(1)
-p560.plot(theta'); % Plot robô na configuração inicial
+p560.plot(theta'); % Plot robÃ´ na configuraÃ§Ã£o inicial
 hold on
 T.plot('rgb') % Plot pose desejada
 %%
-while (norm(e - e_ant) > epsilon) % Critério de parada
+while (norm(e - e_ant) > epsilon) % CritÃ©rio de parada
     i = i+1; % contador
-    J = p560.jacob0(theta); % Jacobiana geométrica
-    T = p560.fkine(theta); % Cinemática direta para pegar a pose do efetuador 
-    p = transl(T); % Translação do efetuador
+    J = p560.jacob0(theta); % Jacobiana geomÃ©trica
+    T = p560.fkine(theta); % CinemÃ¡tica direta para pegar a pose do efetuador 
+    p = transl(T); % translaÃ§Ã£o do efetuador
     R = SO3(T); 
-    R = R.R(); % Extrai rotação do efetuador
+    R = R.R(); % Extrai rotaÃ§Ã£o do efetuador
     
-    p_err = pd-p; % Erro de translação
+    p_err = pd-p; % Erro de translaÃ§Ã£o
     
     nphi = rotm2axang2(Rd*R'); 
-    nphi_err = nphi(1:3)*nphi(4); % Erro de rotação (n*phi)
+    nphi_err = nphi(1:3)*nphi(4); % Erro de rotaÃ§Ã£o (n*phi)
     
     e_ant = e;
     e = [p_err'; nphi_err']; % Vetor de erro
     
     u = pinv(J)*K*e; % Lei de controle
 
-    theta = theta + 0.1*u; % Cálculo de theta (Regra do trapézio)
+    theta = theta + 0.1*u; % Cï¿½lculo de theta (Regra do trapÃ©zio)
     
     p560.plot(theta');
     control_sig(:,i) = u; % Sinal de controle
@@ -68,12 +68,12 @@ for i = 1:6
     plot(control_sig(i,:))
 end
 hold off
-xlabel('Iterações')
+xlabel('Iteraï¿½ï¿½es')
 ylabel('Sinal de controle: u(rad/s)')
 
 figure(3)
 plot(err)
-xlabel('Iterações')
+xlabel('Iteraï¿½ï¿½es')
 ylabel('Norma do erro: |e|')
 box off
 

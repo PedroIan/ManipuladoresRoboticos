@@ -40,9 +40,9 @@ contf = toc(cont0);
 double(pds(0))
 
 T = i120.fkine(double(pds(0))); % Pega pose desejada do efetuador
-pd = transl(T); % Pega vetor de transla��o do efetuador
-Rd = SO3(T); % Pega o objeto SO3 correspondente � rota��o do efetuador
-Rd = Rd.R; %Pega matriz de rota��o do efetuador
+pd = transl(T); % Pega vetor de translação do efetuador
+Rd = SO3(T); % Pega o objeto SO3 correspondente � rotação do efetuador
+Rd = Rd.R; %Pega matriz de rotação do efetuador
 
 %Td = SE3(Rd, double(pds(contf)));
 
@@ -57,21 +57,21 @@ i = 0
 testeTic = tic;
 inicio = tic;
 
-while (toc(inicio) < 15)% Crit�rio de parada
-    JCompleta = i120.jacob0(q, 'rpy'); % Jacobiana geom�trica
+while (toc(inicio) < 15)% Critério de parada
+    JCompleta = i120.jacob0(q, 'rpy'); % Jacobiana geométrica
     J = JCompleta(1:3, :);
-    T = i120.fkine(q); % Cinem�tica direta para pegar a pose do efetuador
-    p = transl(T); % Transla��o do efetuador
+    T = i120.fkine(q); % Cinemática direta para pegar a pose do efetuador
+    p = transl(T); % translação do efetuador
     R = SO3(T);
-    R = R.R; % Extrai rota��o do efetuador
+    R = R.R; % Extrai rotação do efetuador
     i = i + 1; % contador
 
     posicaoMomentanea = double(pds(testeTic));
 
-    p_err = posicaoMomentanea(1:3) - p; % Erro de transla��o
+    p_err = posicaoMomentanea(1:3) - p; % Erro de translação
 
     nphi = rotm2axang(Rd * R');
-    nphi_err = nphi(1:3) * nphi(4); % Erro de rota��o (n*phi)
+    nphi_err = nphi(1:3) * nphi(4); % Erro de rotação (n*phi)
 
     e_ant = e;
     e = [p_err'; nphi_err']; % Vetor de erro
@@ -85,7 +85,7 @@ while (toc(inicio) < 15)% Crit�rio de parada
     dt = toc(testeTic);
     testeTic = tic;
 
-    q = q + dt * u'; % C�lculo de posicaoInicial (Regra do trap�zio)
+    q = q + dt * u'; % C�lculo de posicaoInicial (Regra do trapézio)
 
     i120.plot(q);
     control_sig(:, 1) = u; % Sinal de controle
@@ -94,3 +94,25 @@ while (toc(inicio) < 15)% Crit�rio de parada
 end
 
 hold off
+
+%% Plot sinal de controle e norma do erro
+
+figure(2)
+title('Sinais de Controle');
+
+for(i = 1:6)
+    subplot(3,2,i)
+    plot(control_sig(i, :))
+    title('Junta', i )
+    xlabel('Iterações')
+    ylabel('Sinal de controle: u(rad/s)')
+    hold on
+end
+
+hold off
+
+figure(3)
+plot(err)
+xlabel('Iterações')
+ylabel('Norma do erro: |e|')
+box off
