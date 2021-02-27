@@ -16,8 +16,8 @@ L(5) = Revolute('d', 0.302, 'alpha', pi / 2, 'qlim', (8/9) * [-pi pi]);
 L(6) = Revolute('alpha', -pi / 2, 'qlim', (2/3) * [-pi pi]);
 L(7) = Revolute('d', .072, 'offset', pi, 'qlim', (20/9) * [-pi pi]);
 
-i120 = SerialLink(L, 'name', 'IRB 120')
-i120.base = trotx(-90);
+i120 = SerialLink(L, 'name', 'IRB 120');
+i120.base = trotx(0);
 
 q = [0 0 0 0 0 -pi / 2 0];
 
@@ -34,6 +34,9 @@ pd = transl(T); % Pega vetor de translação do efetuador
 Rd = SO3(T); % Pega o objeto SO3 correspondente � rotação do efetuador
 Rd = Rd.R; %Pega matriz de rotação do efetuador
 
+Td = SE3(Rd, pd);
+Td.plot('rgb')
+
 ganho = 0.8;
 epsilon = 2e-2;
 
@@ -45,7 +48,7 @@ e = 1;
 figure(1)
 i120.plot(q); % Plot robô na configuração inicial
 hold on
-T.plot('rgb')% Plot pose desejada
+Td.plot('rgb')% Plot pose desejada
 %%
 i = 0
 
@@ -67,14 +70,12 @@ while (norm(e) > epsilon)% Critério de parada
     e_ant = e;
     e = [p_err'; nphi_err']; % Vetor de erro
 
-    e = e(1:3, :);
-
     u = pinv(J) * ganho * e; % Lei de controle
 
     dt = toc(testeTic);
     testeTic = tic;
 
-    q = q + dt * u'; % C�lculo de posicaoInicial (Regra do trapézio)
+    q = q + 0.1 * u'; % C�lculo de posicaoInicial (Regra do trapézio)
 
     i120.plot(q);
     control_sig(:, 1) = u; % Sinal de controle

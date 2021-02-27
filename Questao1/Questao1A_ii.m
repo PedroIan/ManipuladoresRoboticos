@@ -15,7 +15,8 @@ L(4) = Revolute('d', 0.302, 'alpha', pi / 2, 'qlim', (8/9) * [-pi pi]);
 L(5) = Revolute('alpha', -pi / 2, 'qlim', (2/3) * [-pi pi]);
 L(6) = Revolute('d', .072, 'offset', pi, 'qlim', (20/9) * [-pi pi]);
 
-i120 = SerialLink(L, 'name', 'IRB 120')
+i120 = SerialLink(L, 'name', 'IRB 120');
+i120.base = trotx(0);
 
 q = [0 0 0 0 -pi / 2 0];
 

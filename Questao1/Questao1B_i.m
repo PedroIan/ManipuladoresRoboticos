@@ -44,7 +44,7 @@ pd = transl(T); % Pega vetor de translação do efetuador
 Rd = SO3(T); % Pega o objeto SO3 correspondente � rotação do efetuador
 Rd = Rd.R; %Pega matriz de rotação do efetuador
 
-%Td = SE3(Rd, double(pds(contf)));
+Td = SE3(Rd, pd);
 
 rpyd = rotm2axang(Rd);
 
@@ -53,6 +53,7 @@ epsilon = 2e-2
 %%
 
 i = 0
+minicount = 0
 
 testeTic = tic;
 inicio = tic;
@@ -62,11 +63,12 @@ while (toc(inicio) < 15)% Critério de parada
     J = JCompleta(1:3, :);
     T = i120.fkine(q); % Cinemática direta para pegar a pose do efetuador
     p = transl(T); % translação do efetuador
-    R = SO3(T);
+    R = SO3();
     R = R.R; % Extrai rotação do efetuador
     i = i + 1; % contador
+    minicount = minicount + 0.1;
 
-    posicaoMomentanea = double(pds(testeTic));
+    posicaoMomentanea = double(pds(minicount));
 
     p_err = posicaoMomentanea(1:3) - p; % Erro de translação
 
@@ -85,10 +87,10 @@ while (toc(inicio) < 15)% Critério de parada
     dt = toc(testeTic);
     testeTic = tic;
 
-    q = q + dt * u'; % C�lculo de posicaoInicial (Regra do trapézio)
+    q = q + 0.1 * u'; % C�lculo de posicaoInicial (Regra do trapézio)
 
     i120.plot(q);
-    control_sig(:, 1) = u; % Sinal de controle
+    control_sig(:, i) = u; % Sinal de controle
     err(i) = norm(e); % Norma do erro
     norm(e)
 end
