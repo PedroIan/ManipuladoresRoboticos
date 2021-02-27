@@ -22,7 +22,7 @@ q = [0 0 0 0 -pi / 2 0];
 qdot_lim = pi * [25/18 25/18 25/18 16/9 16/9 7/3];
 
 ganho = 0.8;
-epsilon = 25e-2;
+epsilon = 2e-2;
 
 e_ant = 1;
 e = 1; 
@@ -35,7 +35,7 @@ posicaoDesejada = [0.38 .38 .5 0 0 0];
 
 T = i120.fkine(posicaoDesejada'); % Pega pose desejada do efetuador 
 pd = transl(T); % Pega vetor de translação do efetuador
-Rd = SO3(T); % Pega o objeto SO3 correspondente � rotação do efetuador
+Rd = SO3(); % Pega o objeto SO3 correspondente � rotação do efetuador
 Rd = Rd.R; %Pega matriz de rotação do efetuador
 
 rpyd = rotm2eul(Rd);
@@ -49,7 +49,7 @@ Td = SE3(Rd, pd);
 figure(1)
 i120.plot(posicaoInicial); % Plot robô na configuração inicial
 hold on
-T.plot('rgb') % Plot pose desejada
+Td.plot('rgb') % Plot pose desejada
 %%
 i = 0
 

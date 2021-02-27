@@ -16,6 +16,7 @@ L(5) = Revolute('alpha', -pi / 2, 'qlim', (2/3) * [-pi pi]);
 L(6) = Revolute('d', .072, 'offset', pi, 'qlim', (20/9) * [-pi pi]);
 
 i120 = SerialLink(L, 'name', 'IRB 120');
+i120.base = trotx(0);
 
 q = [0 0 0 0 -pi / 2 0];
 
@@ -32,8 +33,8 @@ pd = transl(T); % Pega vetor de translação do efetuador
 Rd = SO3(); % Pega o objeto SO3 correspondente � rotação do efetuador
 Rd = Rd.R; %Pega matriz de rotação do efetuador
 
-%Td = SE3(Rd, posicaoDesejada');
-%Td.plot('rgb')
+Td = SE3(Rd, pd);
+Td.plot('rgb')
 
 ganho = 0.8;
 epsilon = 2e-2;
@@ -46,7 +47,7 @@ e = inf(6,1);
 figure(1)
 i120.plot(posicaoInicial); % Plot robô na configuração inicial
 hold on
-T.plot('rgb')% Plot pose desejada
+Td.plot('rgb')% Plot pose desejada
 %%
 i = 0
 
@@ -58,7 +59,7 @@ while (norm(e) > epsilon)% Critério de parada
     T = i120.fkine(q); % Cinemática direta para pegar a pose do efetuador
     p = transl(T); % translação do efetuador
     R = SO3();
-    R = R.R(); % Extrai rotação do efetuador
+    R = R.R; % Extrai rotação do efetuador
     i = i + 1; % contador
 
     p_err = pd - p; % Erro de translação
