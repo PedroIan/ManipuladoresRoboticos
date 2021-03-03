@@ -2,9 +2,46 @@ clc
 clear
 close all
 
-% run('./rvctools/startup.m')
-
 syms t;
+
+%% Confere se existe uma simulação ativa no CoppeliaSim
+
+sim = remApi('remoteApi'); % using the prototype file (remoteApiProto.m)
+sim.simxFinish(-1); % just in case, close all opened connections
+clientID = sim.simxStart('127.0.0.1', 19999, true, true, 5000, 5);
+
+if (clientID >- 1)
+    % sim=remApi('remoteApi','extApi.h'); % using the header (requires a compiler)
+    disp('Connected to remote API server');
+
+    h = [0 0 0 0 0 0 0];
+
+    
+    [r, h(1)] = sim.simxGetObjectHandle(clientID, 'joint_7', sim.simx_opmode_blocking);
+    [r, h(2)] = sim.simxGetObjectHandle(clientID, 'joint_1', sim.simx_opmode_blocking);
+    [r, h(3)] = sim.simxGetObjectHandle(clientID, 'joint_2', sim.simx_opmode_blocking);
+    [r, h(4)] = sim.simxGetObjectHandle(clientID, 'joint_3', sim.simx_opmode_blocking);
+    [r, h(5)] = sim.simxGetObjectHandle(clientID, 'joint_4', sim.simx_opmode_blocking);
+    [r, h(6)] = sim.simxGetObjectHandle(clientID, 'joint_5', sim.simx_opmode_blocking);
+    [r, h(7)] = sim.simxGetObjectHandle(clientID, 'joint_6', sim.simx_opmode_blocking);
+    
+    %%% Exemplo posição arbitrária
+    
+    % joint_position = [pi / 2 pi / 2 0 0 0 pi / 2 0];
+    % for i = 1:7
+    %     sim.simxSetJointTargetPosition(clientID, h(i), joint_position(i), sim.simx_opmode_streaming)
+    % end
+
+    pause(10);
+    sim.delete(); % call the destructor!
+else
+    sim.delete();
+
+    disp('CoppeliaSim não ativo, realizando simulações locais');
+end
+
+
+disp('Programa Finalizado');
 
 %% Inicialização dos Parâmetros
 

@@ -2,128 +2,152 @@ clc
 clear
 close all
 
-% run('./rvctools/startup.m')
-
 syms t;
 
-%% Inicialização dos Parâmetros
+%% Confere se existe uma simulação ativa no CoppeliaSim
 
-L(1) = Revolute('d', .290, 'alpha', -pi / 2, 'qlim', (11/12) * [-pi pi]);
-L(2) = Revolute('a', .270, 'offset', -pi / 2, 'qlim', (11/18) * [-pi pi]);
-L(3) = Revolute('a', .070, 'alpha', -pi / 2, 'qlim', [-(11/18) * pi (7/18) * pi]);
-L(4) = Revolute('d', 0.302, 'alpha', pi / 2, 'qlim', (8/9) * [-pi pi]);
-L(5) = Revolute('alpha', -pi / 2, 'qlim', (2/3) * [-pi pi]);
-L(6) = Revolute('d', .072, 'offset', pi, 'qlim', (20/9) * [-pi pi]);
+sim = remApi('remoteApi'); % using the prototype file (remoteApiProto.m)
+sim.simxFinish(-1); % just in case, close all opened connections
+clientID = sim.simxStart('127.0.0.1', 19999, true, true, 5000, 5);
 
-i120 = SerialLink(L, 'name', 'IRB 120');
-i120.base = trotx(0);
+if (clientID >- 1)
+    % sim=remApi('remoteApi','extApi.h'); % using the header (requires a compiler)
+    disp('Connected to remote API server');
 
-q = [0 0 0 0 -pi / 2 0];
+    h = [0 0 0 0 0 0 0];
 
-qdot_lim = pi * [25/18 25/18 25/18 16/9 16/9 7/3];
+    [r, h(1)] = sim.simxGetObjectHandle(clientID, 'joint_7', sim.simx_opmode_blocking);
+    [r, h(2)] = sim.simxGetObjectHandle(clientID, 'joint_1', sim.simx_opmode_blocking);
+    [r, h(3)] = sim.simxGetObjectHandle(clientID, 'joint_2', sim.simx_opmode_blocking);
+    [r, h(4)] = sim.simxGetObjectHandle(clientID, 'joint_3', sim.simx_opmode_blocking);
+    [r, h(5)] = sim.simxGetObjectHandle(clientID, 'joint_4', sim.simx_opmode_blocking);
+    [r, h(6)] = sim.simxGetObjectHandle(clientID, 'joint_5', sim.simx_opmode_blocking);
+    [r, h(7)] = sim.simxGetObjectHandle(clientID, 'joint_6', sim.simx_opmode_blocking);
 
-%% Definições de Controle
+    %%% Exemplo posição arbitrária
 
-posicaoInicial = [0 0 0 0 -pi / 2 0];
+    % joint_position = [pi / 2 pi / 2 0 0 0 pi / 2 0];
+    % for i = 1:7
+    %     sim.simxSetJointTargetPosition(clientID, h(i), joint_position(i), sim.simx_opmode_streaming)
+    % end
 
-posicaoDesejada = [0.38 0.38 0.5 0 0 0]';
+    % Posição inicial
+    q = [0 0 0 0 -pi / 2 0];
+    for i = 1:6
+        sim.simxSetJointTargetPosition(clientID, h(i + 1), q(i), sim.simx_opmode_streaming)
+    end
 
-T = i120.fkine(posicaoDesejada); % Pega pose desejada do efetuador
-pd = transl(T); % Pega vetor de translação do efetuador
-Rd = SO3(); % Pega o objeto SO3 correspondente � rotação do efetuador
-Rd = Rd.R; %Pega matriz de rotação do efetuador
+    pause(10);
+    sim.delete(); % call the destructor!
+else
+    sim.delete();
 
-Td = SE3(Rd, pd);
-Td.plot('rgb')
+    %% Inicialização dos Parâmetros
 
-ganho = 0.8;
-epsilon = 2e-2;
+    L(1) = Revolute('d', .290, 'alpha', -pi / 2, 'qlim', (11/12) * [-pi pi]);
+    L(2) = Revolute('a', .270, 'offset', -pi / 2, 'qlim', (11/18) * [-pi pi]);
+    L(3) = Revolute('a', .070, 'alpha', -pi / 2, 'qlim', [-(11/18) * pi (7/18) * pi]);
+    L(4) = Revolute('d', 0.302, 'alpha', pi / 2, 'qlim', (8/9) * [-pi pi]);
+    L(5) = Revolute('alpha', -pi / 2, 'qlim', (2/3) * [-pi pi]);
+    L(6) = Revolute('d', .072, 'offset', pi, 'qlim', (20/9) * [-pi pi]);
 
-e_ant = 1;
-e = inf(6,1);
+    i120 = SerialLink(L, 'name', 'IRB 120');
+    i120.base = trotx(0);
 
-%% Plot inicial
+    q = [0 0 0 0 -pi / 2 0];
 
-figure(1)
-i120.plot(posicaoInicial); % Plot robô na configuração inicial
-hold on
-Td.plot('rgb')% Plot pose desejada
-%%
-i = 0
+    qdot_lim = pi * [25/18 25/18 25/18 16/9 16/9 7/3];
 
-testeTic = tic;
+    %% Definições de Controle
 
-while (norm(e) > epsilon)% Critério de parada
-    JCompleta = i120.jacob0(q, 'rpy'); % Jacobiana geométrica
-    J = JCompleta(1:3, :);
-    T = i120.fkine(q); % Cinemática direta para pegar a pose do efetuador
-    p = transl(T); % translação do efetuador
-    R = SO3();
-    R = R.R; % Extrai rotação do efetuador
-    i = i + 1; % contador
+    posicaoInicial = [0 0 0 0 -pi / 2 0];
 
-    p_err = pd - p; % Erro de translação
+    posicaoDesejada = [0.38 0.38 0.5 0 0 0]';
 
-    nphi = rotm2axang(Rd * R');
-    nphi_err = nphi(1:3) * nphi(4); % Erro de rotação (n*phi)
+    T = i120.fkine(posicaoDesejada); % Pega pose desejada do efetuador
+    pd = transl(T); % Pega vetor de translação do efetuador
+    Rd = SO3(); % Pega o objeto SO3 correspondente � rotação do efetuador
+    Rd = Rd.R; %Pega matriz de rotação do efetuador
 
-    e_ant = e;
-    e = [p_err'; nphi_err']; % Vetor de erro
+    Td = SE3(Rd, pd);
+    Td.plot('rgb')
 
-    e = e(1:3, :);
+    ganho = 0.8;
+    epsilon = 2e-2;
 
-    u = pinv(J) * ganho * e; % Lei de controle
+    e_ant = 1;
+    e = inf(6, 1);
 
-    dt = toc(testeTic)
+    %% Plot inicial
+
+    figure(1)
+    i120.plot(posicaoInicial); % Plot robô na configuração inicial
+    hold on
+    Td.plot('rgb')% Plot pose desejada
+    %%
+    i = 0
+
     testeTic = tic;
 
-    q = q + 0.1 * u'; % C�lculo de posicaoInicial (Regra do trapézio)
+    while (norm(e) > epsilon)% Critério de parada
+        JCompleta = i120.jacob0(q, 'rpy'); % Jacobiana geométrica
+        J = JCompleta(1:3, :);
+        T = i120.fkine(q); % Cinemática direta para pegar a pose do efetuador
+        p = transl(T); % translação do efetuador
+        R = SO3();
+        R = R.R; % Extrai rotação do efetuador
+        i = i + 1; % contador
 
-    i120.plot(q);
-    control_sig(:, i) = u; % Sinal de controle
-    err(i) = norm(e); % Norma do erro
-    norm(e);
-end
+        p_err = pd - p; % Erro de translação
 
-hold off
+        nphi = rotm2axang(Rd * R');
+        nphi_err = nphi(1:3) * nphi(4); % Erro de rotação (n*phi)
 
-%% Plot sinal de controle e norma do erro
+        e_ant = e;
+        e = [p_err'; nphi_err']; % Vetor de erro
 
-figure(2)
-title('Sinais de Controle');
+        e = e(1:3, :);
 
-for(i = 1:6)
-    subplot(3,2,i)
-    plot(control_sig(i, :))
-    title('Junta', i )
-    xlabel('Iterações')
+        u = pinv(J) * ganho * e; % Lei de controle
+
+        dt = toc(testeTic)
+        testeTic = tic;
+
+        q = q + 0.1 * u'; % C�lculo de posicaoInicial (Regra do trapézio)
+
+        i120.plot(q);
+        control_sig(:, i) = u; % Sinal de controle
+        err(i) = norm(e); % Norma do erro
+        norm(e);
+    end
+
+    hold off
+
+    %% Plot sinal de controle e norma do erro
+
+    figure(2)
+    title('Sinais de Controle');
+
+    for (i = 1:6)
+        subplot(3, 2, i)
+        plot(control_sig(i, :))
+        title('Junta', i)
+        xlabel('Iterações')
+        ylabel('Sinal de controle: u(rad/s)')
+        hold on
+    end
+
+    hold off
+    xlabel('Itera��es')
     ylabel('Sinal de controle: u(rad/s)')
-    hold on
+
+    figure(3)
+    plot(err)
+    xlabel('Itera��es')
+    ylabel('Norma do erro: |e|')
+    box off
+
+    disp('CoppeliaSim não ativo, realizando simulações locais');
 end
 
-hold off
-xlabel('Itera��es')
-ylabel('Sinal de controle: u(rad/s)')
-
-figure(3)
-plot(err)
-xlabel('Itera��es')
-ylabel('Norma do erro: |e|')
-box off
-
-%% Posição final Desejada
-
-desiredPosition = [0.38 .38 .5 0 0 0];
-
-T = i120.fkine(desiredPosition);
-
-J = i120.jacob0(q, 'rpy');
-
-p = transl(T);
-
-R = SO3(T);
-R = R.R();
-
-i120.plot(desiredPosition)
-hold on
-T.plot(desiredPosition)
+disp('Programa Finalizado');
