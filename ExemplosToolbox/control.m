@@ -68,12 +68,12 @@ for i = 1:6
     plot(control_sig(i,:))
 end
 hold off
-xlabel('Itera��es')
+xlabel('Iterações')
 ylabel('Sinal de controle: u(rad/s)')
 
 figure(3)
 plot(err)
-xlabel('Itera��es')
+xlabel('Iterações')
 ylabel('Norma do erro: |e|')
 box off
 

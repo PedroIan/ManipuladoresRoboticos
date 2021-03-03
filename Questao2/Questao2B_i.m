@@ -6,6 +6,30 @@ close all
 
 syms t;
 
+%% Confere se existe uma simulação ativa no CoppeliaSim
+
+sim = remApi('remoteApi'); % using the prototype file (remoteApiProto.m)
+sim.simxFinish(-1); % just in case, close all opened connections
+clientID = sim.simxStart('127.0.0.1', 19999, true, true, 5000, 5);
+
+if (clientID >- 1)
+    % sim=remApi('remoteApi','extApi.h'); % using the header (requires a compiler)
+    disp('Connected to remote API server');
+
+    h = [0 0 0 0 0 0 0];
+
+    [r, h(1)] = sim.simxGetObjectHandle(clientID, 'joint_7', sim.simx_opmode_blocking);
+    [r, h(2)] = sim.simxGetObjectHandle(clientID, 'joint_1', sim.simx_opmode_blocking);
+    [r, h(3)] = sim.simxGetObjectHandle(clientID, 'joint_2', sim.simx_opmode_blocking);
+    [r, h(4)] = sim.simxGetObjectHandle(clientID, 'joint_3', sim.simx_opmode_blocking);
+    [r, h(5)] = sim.simxGetObjectHandle(clientID, 'joint_4', sim.simx_opmode_blocking);
+    [r, h(6)] = sim.simxGetObjectHandle(clientID, 'joint_5', sim.simx_opmode_blocking);
+    [r, h(7)] = sim.simxGetObjectHandle(clientID, 'joint_6', sim.simx_opmode_blocking);
+
+else
+    disp('CoppeliaSim não ativo, realizando simulações locais');
+end
+
 %% Inicialização dos Parâmetros
 
 L(1) = Revolute('d', .777, 'alpha', pi / 2, 'qlim', [0 0.5]);
@@ -27,7 +51,7 @@ qdot_lim = [0.5 pi * 25/18 pi * 25/18 pi * 25/18 pi * 16/9 pi * 16/9 pi * 7/3];
 
 posicaoInicial = [0 0 0 0 0 -pi / 2 0];
 
-posicaoDesejada = [0 0.38 .58 .6 0 0 0 ];
+posicaoDesejada = [0 0.38 .58 .6 0 0 0];
 
 T = i120.fkine(posicaoDesejada); % Pega pose desejada do efetuador
 pd = transl(T); % Pega vetor de translação do efetuador
@@ -76,6 +100,14 @@ while (norm(e) > epsilon)% Critério de parada
 
     q = q + dt * u'; % C�lculo de posicaoInicial (Regra do trapézio)
 
+    if (clientID >- 1)
+
+        for i = 1:7
+            sim.simxSetJointTargetPosition(clientID, h(i), q(i), sim.simx_opmode_streaming)
+        end
+
+    end
+
     i120.plot(q);
     control_sig(:, 1) = u; % Sinal de controle
     err(i) = norm(e); % Norma do erro
@@ -89,22 +121,22 @@ hold off
 figure(2)
 title('Sinais de Controle');
 
-for(i = 1:6)
-    subplot(3,2,i)
+for (i = 1:6)
+    subplot(3, 2, i)
     plot(control_sig(i, :))
-    title('Junta', i )
+    title('Junta', i)
     xlabel('Iterações')
     ylabel('Sinal de controle: u(rad/s)')
     hold on
 end
 
 hold off
-xlabel('Itera��es')
+xlabel('Iterações')
 ylabel('Sinal de controle: u(rad/s)')
 
 figure(3)
 plot(err)
-xlabel('Itera��es')
+xlabel('Iterações')
 ylabel('Norma do erro: |e|')
 box off
 
@@ -124,3 +156,6 @@ R = R.R();
 i120.plot(desiredPosition)
 hold on
 T.plot(desiredPosition)
+
+sim.delete();
+disp('Programa Finalizado');
