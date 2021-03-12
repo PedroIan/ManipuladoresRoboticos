@@ -16,13 +16,12 @@ if (clientID >- 1)
 
     h = [0 0 0 0 0 0 0];
 
-    [r, h(1)] = sim.simxGetObjectHandle(clientID, 'joint_7', sim.simx_opmode_blocking);
-    [r, h(2)] = sim.simxGetObjectHandle(clientID, 'joint_1', sim.simx_opmode_blocking);
-    [r, h(3)] = sim.simxGetObjectHandle(clientID, 'joint_2', sim.simx_opmode_blocking);
-    [r, h(4)] = sim.simxGetObjectHandle(clientID, 'joint_3', sim.simx_opmode_blocking);
-    [r, h(5)] = sim.simxGetObjectHandle(clientID, 'joint_4', sim.simx_opmode_blocking);
-    [r, h(6)] = sim.simxGetObjectHandle(clientID, 'joint_5', sim.simx_opmode_blocking);
-    [r, h(7)] = sim.simxGetObjectHandle(clientID, 'joint_6', sim.simx_opmode_blocking);
+    [r, h(1)] = sim.simxGetObjectHandle(clientID, 'joint_1', sim.simx_opmode_blocking);
+    [r, h(2)] = sim.simxGetObjectHandle(clientID, 'joint_2', sim.simx_opmode_blocking);
+    [r, h(3)] = sim.simxGetObjectHandle(clientID, 'joint_3', sim.simx_opmode_blocking);
+    [r, h(4)] = sim.simxGetObjectHandle(clientID, 'joint_4', sim.simx_opmode_blocking);
+    [r, h(5)] = sim.simxGetObjectHandle(clientID, 'joint_5', sim.simx_opmode_blocking);
+    [r, h(6)] = sim.simxGetObjectHandle(clientID, 'joint_6', sim.simx_opmode_blocking);
 
 else
     disp('CoppeliaSim não ativo, realizando simulações locais');
@@ -47,7 +46,8 @@ qdot_lim = pi * [25/18 25/18 25/18 16/9 16/9 7/3];
 
 wn = pi / 10;
 
-pds(t) = [0.02 * (sin(wn * t) + sin(4 * wn * t)) + .428 .020 .02 * (cos(wn * t) + cos(4 * wn * t)) + .669 0 0 0];
+% 20(sin(ωnt) + sin(4ωnt)) + 428, 20, 20(cos(ωnt) + cos(4ωnt)) + 669, 0, 0, 0
+pds(t) = [0.02 * (sin(wn * t) + sin(4 * wn * t)) + .428 .0200 .02 * (cos(wn * t) + cos(4 * wn * t)) + .669];
 
 pddots = diff(pds);
 
@@ -55,20 +55,17 @@ ganho = 1.8;
 
 e = inf(6, 1);
 
-cont0 = tic;
+posicaoDesejada = [0.428 0.02 0.669]
 
-t0 = tic;
+% old Code
+%T = i120.fkine(posicaoDesejada); % Pega pose desejada do efetuador
+%pd = transl(T); % Pega vetor de translação do efetuador
+% end
 
-contf = toc(cont0);
+Rd = SO3();
+Rd = Rd.R;
 
-double(pds(0))
-
-T = i120.fkine(double(pds(0))); % Pega pose desejada do efetuador
-pd = transl(T); % Pega vetor de translação do efetuador
-Rd = SO3(T); % Pega o objeto SO3 correspondente � rotação do efetuador
-Rd = Rd.R; %Pega matriz de rotação do efetuador
-
-%Td = SE3(Rd, double(pds(contf)));
+%Tdesejado = SE3(Rd, posicaoDesejada),
 
 rpyd = rotm2eul(Rd);
 
@@ -81,59 +78,135 @@ i = 0;
 testeTic = tic;
 inicio = tic;
 
-while (toc(inicio) < 15)% Critério de parada
-    J = i120.jacob0(q, 'rpy'); % Jacobiana geométrica
+%restart
+rpyd = [0 0 0];
+
+% Chegar na posição inicial do círculo
+while (norm(e) > epsilon)% Critério de parada
+    i = i + 1; % contador
+
     T = i120.fkine(q); % Cinemática direta para pegar a pose do efetuador
+    J = i120.jacob0(q, 'rpy'); % Jacobiana geométrica
     p = transl(T); % translação do efetuador
     R = SO3(T);
     R = R.R; % Extrai rotação do efetuador
-    i = i + 1; % contador
-
-    posicaoMomentanea = double(pds(testeTic));
 
     rpy = rotm2eul(R);
 
     rpy_til = rpyd - rpy;
 
-    p_err = posicaoMomentanea(1:3) - p; % Erro de translação
+    p_err = posicaoDesejada - p; % Erro de translação
 
     nphi = rotm2axang(Rd * R');
     nphi_err = nphi(1:3) * nphi(4); % Erro de rotação (n*phi)
 
-    e_ant = e;
     e = [p_err'; rpy_til']; % Vetor de erro
 
-    derivada = double(pddots(testeTic));
+    % derivada = double(pddots(testeTic));
 
-    u = pinv(J) * ganho * (derivada' + e); % Lei de controle
+    u = pinv(J) * ganho * e; % Lei de controle
 
     dt = toc(testeTic);
     testeTic = tic;
+
+    for junta = 1:6
+
+        u(junta) = rem(u(junta), qdot_lim(junta));
+
+        newU = q(junta) + u(junta) * dt
+
+        if newU < i120.qlim(junta, 1)
+            u(junta) = (i120.qlim(junta, 1) - q(junta)) / dt;
+        elseif newU > i120.qlim(junta, 2)
+            u(junta) = (i120.qlim(junta, 2) - q(junta)) / dt;
+        end
+
+    end
 
     q = q + 0.1 * u'; % C�lculo de posicaoInicial (Regra do trapézio)
 
     if (clientID >- 1)
 
         for i = 1:6
-            sim.simxSetJointTargetPosition(clientID, h(i + 1), q(i), sim.simx_opmode_streaming)
+            sim.simxSetJointTargetPosition(clientID, h(i), q(i), sim.simx_opmode_streaming)
         end
 
     end
 
     i120.plot(q);
-    control_sig(:, 1) = u; % Sinal de controle
+    control_sig(:, i) = u; % Sinal de controle
     err(i) = norm(e); % Norma do erro
-    norm(e);
+    trajetoria(:, i) = p;
 end
 
 hold off
+
+inicioCirculo = tic;
+testeTic = tic;
+
+while (toc(inicioCirculo) < 30)
+    i = i + 1; % contador
+
+    T = i120.fkine(q); % Cinemática direta para pegar a pose do efetuador
+    J = i120.jacob0(q, 'rpy'); % Jacobiana geométrica
+    p = transl(T); % translação do efetuador
+    R = SO3(T);
+    R = R.R; % Extrai rotação do efetuador
+
+    rpy = rotm2eul(R);
+
+    rpy_til = rpyd - rpy;
+
+    p_err = double(pds(toc(inicioCirculo))) - p; % Erro de translação
+
+    nphi = rotm2axang(Rd * R');
+    nphi_err = nphi(1:3) * nphi(4); % Erro de rotação (n*phi)
+
+    e = [p_err'; rpy_til']; % Vetor de erro
+
+    pdsdot = double(pddots(toc(inicioCirculo)))
+
+    u = pinv(J) * ([pdsdot 0 0 0]' + ganho * e); % Lei de controle
+
+    dt = toc(testeTic);
+    testeTic = tic;
+
+    for k = 1:6
+
+        u(junta) = rem(u(junta), qdot_lim(junta));
+
+        newU = q(k) + u(k) * dt;
+
+        if newU < i120.qlim(k, 1)
+            u(k) = (i120.qlim(k, 1) - q(k)) / dt;
+        elseif newU > i120.qlim(k, 2)
+            u(k) = (i120.qlim(k, 2) - q(k)) / dt;
+        end
+
+    end
+
+    q = q + 0.1 * u'; % C�lculo de posicaoInicial (Regra do trapézio)
+
+    if (clientID >- 1)
+
+        for i = 1:6
+            sim.simxSetJointTargetPosition(clientID, h(i), q(i), sim.simx_opmode_streaming)
+        end
+
+    end
+
+    i120.plot(q);
+    control_sig(:, i) = u; % Sinal de controle
+    err(i) = norm(e); % Norma do erro
+    trajetoria(:, i) = p;
+end
 
 %% Plot sinal de controle e norma do erro
 
 figure(2)
 title('Sinais de Controle');
 
-for i = 1:6
+for (i = 1:6)
     subplot(3, 2, i)
     plot(control_sig(i, :))
     title('Junta', i)
@@ -149,6 +222,15 @@ plot(err)
 xlabel('Iterações')
 ylabel('Norma do erro: |e|')
 box off
+
+hold on
+figure (4)
+sgtitle('Trajetória do efetuador')
+hold on
+plot3(trajetoria(1, :), trajetoria(2, :), trajetoria(3, :))
+view(3)
+hold off
+legend('Caminho percorrido(m)', 'Location', 'Best');
 
 sim.delete();
 disp('Programa Finalizado');
