@@ -62,7 +62,7 @@ Td = SE3(Rd, posicaoDesejada);
 Td.plot('rgb')
 
 ganho = 0.7;
-epsilon = 2e-2;
+epsilon = 5e-2;
 
 e_ant = 1;
 e = 1;
@@ -112,7 +112,7 @@ while (norm(e) > epsilon)% Critério de parada
 
         u(junta) = rem(u(junta), qdot_lim(junta));
 
-        newU = q(junta) + u(junta) * dt
+        newU = q(junta) + u(junta) * dt;
 
         if newU < i120.qlim(junta, 1)
             u(junta) = (i120.qlim(junta, 1) - q(junta)) / dt;
@@ -164,22 +164,15 @@ xlabel('Iterações')
 ylabel('Norma do erro: |e|')
 box off
 
-%% Posição final Desejada
-
-desiredPosition = [0.38 .38 .5 0 0 0];
-
-T = i120.fkine(desiredPosition);
-
-J = i120.jacob0(q, 'rpy');
-
-p = transl(T);
-
-R = SO3(T);
-R = R.R();
-
-i120.plot(desiredPosition)
 hold on
-T.plot(desiredPosition)
+figure (4)
+sgtitle('Trajetória do efetuador')
+hold on
+plot3(trajetoria(1, :), trajetoria(2, :), trajetoria(3, :))
+view(3)
+hold off
+legend('Caminho percorrido(m)', 'Location', 'Best');
+
 
 sim.delete();
 disp('Programa Finalizado');

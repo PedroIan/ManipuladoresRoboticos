@@ -16,38 +16,41 @@ if (clientID >- 1)
 
     h = [0 0 0 0 0 0 0];
 
-    [r, h(1)] = sim.simxGetObjectHandle(clientID, 'joint_1', sim.simx_opmode_blocking);
-    [r, h(2)] = sim.simxGetObjectHandle(clientID, 'joint_2', sim.simx_opmode_blocking);
-    [r, h(3)] = sim.simxGetObjectHandle(clientID, 'joint_3', sim.simx_opmode_blocking);
-    [r, h(4)] = sim.simxGetObjectHandle(clientID, 'joint_4', sim.simx_opmode_blocking);
-    [r, h(5)] = sim.simxGetObjectHandle(clientID, 'joint_5', sim.simx_opmode_blocking);
-    [r, h(6)] = sim.simxGetObjectHandle(clientID, 'joint_6', sim.simx_opmode_blocking);
+    [r, h(1)] = sim.simxGetObjectHandle(clientID, 'joint_7', sim.simx_opmode_blocking);
+    [r, h(2)] = sim.simxGetObjectHandle(clientID, 'joint_1', sim.simx_opmode_blocking);
+    [r, h(3)] = sim.simxGetObjectHandle(clientID, 'joint_2', sim.simx_opmode_blocking);
+    [r, h(4)] = sim.simxGetObjectHandle(clientID, 'joint_3', sim.simx_opmode_blocking);
+    [r, h(5)] = sim.simxGetObjectHandle(clientID, 'joint_4', sim.simx_opmode_blocking);
+    [r, h(6)] = sim.simxGetObjectHandle(clientID, 'joint_5', sim.simx_opmode_blocking);
+    [r, h(7)] = sim.simxGetObjectHandle(clientID, 'joint_6', sim.simx_opmode_blocking);
 
 else
     disp('CoppeliaSim não ativo, realizando simulações locais');
 end
 
-%%
+%% Inicialização dos Parâmetros
 
-L(1) = Revolute('d', .290, 'alpha', -pi / 2, 'qlim', (11/12) * [-pi pi]);
-L(2) = Revolute('a', .270, 'offset', -pi / 2, 'qlim', (11/18) * [-pi pi]);
-L(3) = Revolute('a', .070, 'alpha', -pi / 2, 'qlim', [-(11/18) * pi (7/18) * pi]);
-L(4) = Revolute('d', 0.302, 'alpha', pi / 2, 'qlim', (8/9) * [-pi pi]);
-L(5) = Revolute('alpha', -pi / 2, 'qlim', (2/3) * [-pi pi]);
-L(6) = Revolute('d', .072, 'offset', pi, 'qlim', (20/9) * [-pi pi]);
+L(1) = Link('prismatic', 'alpha', pi / 2, 'qlim', [0 .5]);
+L(2) = Revolute('d', .290, 'alpha', -pi / 2, 'qlim', (11/12) * [-pi pi]);
+L(3) = Revolute('a', .270, 'offset', -pi / 2, 'qlim', (11/18) * [-pi pi]);
+L(4) = Revolute('a', .070, 'alpha', -pi / 2, 'qlim', [-(11/18) * pi (7/18) * pi]);
+L(5) = Revolute('d', 0.302, 'alpha', pi / 2, 'qlim', (8/9) * [-pi pi]);
+L(6) = Revolute('alpha', -pi / 2, 'qlim', (2/3) * [-pi pi]);
+L(7) = Revolute('d', .072, 'offset', pi, 'qlim', (20/9) * [-pi pi]);
 
 i120 = SerialLink(L, 'name', 'IRB 120');
+i120.base = trotx(-pi / 2);
 
-q = [0 0 0 0 -pi / 2 0];
+q = [0 0 0 0 0 -pi / 2 0];
 
-qdot_lim = pi * [25/18 25/18 25/18 16/9 16/9 7/3];
+qdot_lim = [0.5 pi * 25/18 pi * 25/18 pi * 25/18 pi * 16/9 pi * 16/9 pi * 7/3];
 
 %%
 
 wn = pi / 10;
 
-% 20(sin(ωnt) + sin(4ωnt)) + 428, 20, 20(cos(ωnt) + cos(4ωnt)) + 669, 0, 0, 0
-pds(t) = [0.02 * (sin(wn * t) + sin(4 * wn * t)) + .428 .0200 .02 * (cos(wn * t) + cos(4 * wn * t)) + .669];
+%20(sin(ωnt) + sin(4ωnt)) + 428, 500, 20(cos(ωnt) + cos(4ωnt)) + 569,
+pds(t) = [0.02 * (sin(wn * t) + sin(4 * wn * t)) + .428 .05 .02 * (cos(wn * t) + cos(4 * wn * t)) + .569];
 
 pddots = diff(pds);
 
@@ -55,7 +58,7 @@ ganho = 1.8;
 
 e = inf(6, 1);
 
-posicaoDesejada = [0.428 0.02 0.669]
+posicaoDesejada = [0.428 0.0 0.569]
 
 % old Code
 %T = i120.fkine(posicaoDesejada); % Pega pose desejada do efetuador
@@ -164,14 +167,21 @@ while (toc(inicioCirculo) < 90)
 
     e = [p_err'; rpy_til']; % Vetor de erro
 
-    pdsdot = double(pddots(toc(inicioCirculo)))
+    pdsdot = double(pddots(toc(inicioCirculo)));
 
-    u = pinv(J) * ([pdsdot 0 0 0]' + ganho * e); % Lei de controle
+    for junta = 1:7
+        qMedio(junta) = ((i120.qlim(junta, 1) + i120.qlim(junta, 2)) / 2);
+        distancia = ((i120.qlim(junta, 2)^2) - 2 * (i120.qlim(junta, 2) * i120.qlim(junta, 1)) + (i120.qlim(junta, 1)^2));
+        normalizacao = 2 * q(junta) - 2 * qMedio(junta);
+        mi(junta) = ((-1 / (14 * distancia)) * normalizacao);
+    end
+
+    u = pinv(J) * ([pdsdot 0 0 0]' + ganho * e) + ((eye(7) - (pinv(J) * J)) * mi'); % Lei de controle
 
     dt = toc(testeTic);
     testeTic = tic;
 
-    for k = 1:6
+    for k = 1:7
 
         u(junta) = rem(u(junta), qdot_lim(junta));
 

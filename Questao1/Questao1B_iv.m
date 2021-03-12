@@ -112,7 +112,7 @@ while (norm(e) > epsilon)% Critério de parada
 
         u(junta) = rem(u(junta), qdot_lim(junta));
 
-        newU = q(junta) + u(junta) * dt
+        newU = q(junta) + u(junta) * dt;
 
         if newU < i120.qlim(junta, 1)
             u(junta) = (i120.qlim(junta, 1) - q(junta)) / dt;
@@ -143,7 +143,7 @@ hold off
 inicioCirculo = tic;
 testeTic = tic;
 
-while (toc(inicioCirculo) < 30)
+while (toc(inicioCirculo) < 90)
     i = i + 1; % contador
 
     T = i120.fkine(q); % Cinemática direta para pegar a pose do efetuador

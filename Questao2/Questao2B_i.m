@@ -2,8 +2,6 @@ clc
 clear
 close all
 
-% run('./rvctools/startup.m')
-
 syms t;
 
 %% Confere se existe uma simulação ativa no CoppeliaSim
@@ -32,7 +30,7 @@ end
 
 %% Inicialização dos Parâmetros
 
-L(1) = Revolute('d', .777, 'alpha', pi / 2, 'qlim', [0 0.5]);
+L(1) = Link('prismatic', 'alpha', pi / 2, 'qlim', [0 .5]);
 L(2) = Revolute('d', .290, 'alpha', -pi / 2, 'qlim', (11/12) * [-pi pi]);
 L(3) = Revolute('a', .270, 'offset', -pi / 2, 'qlim', (11/18) * [-pi pi]);
 L(4) = Revolute('a', .070, 'alpha', -pi / 2, 'qlim', [-(11/18) * pi (7/18) * pi]);
@@ -40,81 +38,170 @@ L(5) = Revolute('d', 0.302, 'alpha', pi / 2, 'qlim', (8/9) * [-pi pi]);
 L(6) = Revolute('alpha', -pi / 2, 'qlim', (2/3) * [-pi pi]);
 L(7) = Revolute('d', .072, 'offset', pi, 'qlim', (20/9) * [-pi pi]);
 
-i120 = SerialLink(L, 'name', 'IRB 120')
-i120.base = trotx(-90);
+i120 = SerialLink(L, 'name', 'IRB 120');
+i120.base = trotx(-pi / 2);
 
 q = [0 0 0 0 0 -pi / 2 0];
 
 qdot_lim = [0.5 pi * 25/18 pi * 25/18 pi * 25/18 pi * 16/9 pi * 16/9 pi * 7/3];
 
-%% Definições de Controle
+%%
 
-posicaoInicial = [0 0 0 0 0 -pi / 2 0];
+wn = pi / 10;
 
-posicaoDesejada = [0 0.38 .58 .6 0 0 0];
+pds(t) = [0.05 * sin(wn * t) + .428 .05 .05 * cos(wn * t) + .569];
 
-T = i120.fkine(posicaoDesejada); % Pega pose desejada do efetuador
-pd = transl(T); % Pega vetor de translação do efetuador
-Rd = SO3(T); % Pega o objeto SO3 correspondente � rotação do efetuador
-Rd = Rd.R; %Pega matriz de rotação do efetuador
+pddots = diff(pds);
 
-ganho = 0.8;
+ganho = 1.8;
+
+e = inf(6, 1);
+
+posicaoDesejada = [0.428 0.0 0.569]
+
+% old Code
+%T = i120.fkine(posicaoDesejada); % Pega pose desejada do efetuador
+%pd = transl(T); % Pega vetor de translação do efetuador
+% end
+
+Rd = SO3();
+Rd = Rd.R;
+
+%Tdesejado = SE3(Rd, posicaoDesejada),
+
+rpyd = rotm2eul(Rd);
+
 epsilon = 2e-2;
 
-e_ant = 1;
-e = 1;
-
-%% Aplicação do Controle
-
-figure(1)
-i120.plot(q); % Plot robô na configuração inicial
-hold on
-T.plot('rgb')% Plot pose desejada
 %%
-i = 0
+
+i = 0;
 
 testeTic = tic;
+inicio = tic;
 
+%restart
+rpyd = [0 0 0];
+
+% Chegar na posição inicial do círculo
 while (norm(e) > epsilon)% Critério de parada
-    J = i120.jacob0(q, 'rpy'); % Jacobiana geométrica
+    i = i + 1; % contador
+
     T = i120.fkine(q); % Cinemática direta para pegar a pose do efetuador
+    J = i120.jacob0(q, 'rpy'); % Jacobiana geométrica
     p = transl(T); % translação do efetuador
     R = SO3(T);
     R = R.R; % Extrai rotação do efetuador
-    i = i + 1; % contador
 
-    p_err = pd - p; % Erro de translação
+    rpy = rotm2eul(R);
+
+    rpy_til = rpyd - rpy;
+
+    p_err = posicaoDesejada - p; % Erro de translação
 
     nphi = rotm2axang(Rd * R');
     nphi_err = nphi(1:3) * nphi(4); % Erro de rotação (n*phi)
 
-    e_ant = e;
-    e = [p_err'; nphi_err']; % Vetor de erro
+    e = [p_err'; rpy_til']; % Vetor de erro
 
-    e = e(1:3, :);
+    % derivada = double(pddots(testeTic));
 
     u = pinv(J) * ganho * e; % Lei de controle
 
     dt = toc(testeTic);
     testeTic = tic;
 
-    q = q + dt * u'; % C�lculo de posicaoInicial (Regra do trapézio)
+    for junta = 1:6
+
+        u(junta) = rem(u(junta), qdot_lim(junta));
+
+        newU = q(junta) + u(junta) * dt;
+
+        if newU < i120.qlim(junta, 1)
+            u(junta) = (i120.qlim(junta, 1) - q(junta)) / dt;
+        elseif newU > i120.qlim(junta, 2)
+            u(junta) = (i120.qlim(junta, 2) - q(junta)) / dt;
+        end
+
+    end
+
+    q = q + 0.1 * u'; % C�lculo de posicaoInicial (Regra do trapézio)
 
     if (clientID >- 1)
 
-        for i = 1:7
+        for i = 1:6
             sim.simxSetJointTargetPosition(clientID, h(i), q(i), sim.simx_opmode_streaming)
         end
 
     end
 
     i120.plot(q);
-    control_sig(:, 1) = u; % Sinal de controle
+    control_sig(:, i) = u; % Sinal de controle
     err(i) = norm(e); % Norma do erro
-    norm(e)
+    trajetoria(:, i) = p;
 end
 
 hold off
+
+inicioCirculo = tic;
+testeTic = tic;
+
+while (toc(inicioCirculo) < 90)
+    i = i + 1; % contador
+
+    T = i120.fkine(q); % Cinemática direta para pegar a pose do efetuador
+    J = i120.jacob0(q, 'rpy'); % Jacobiana geométrica
+    p = transl(T); % translação do efetuador
+    R = SO3(T);
+    R = R.R; % Extrai rotação do efetuador
+
+    rpy = rotm2eul(R);
+
+    rpy_til = rpyd - rpy;
+
+    p_err = double(pds(toc(inicioCirculo))) - p; % Erro de translação
+
+    nphi = rotm2axang(Rd * R');
+    nphi_err = nphi(1:3) * nphi(4); % Erro de rotação (n*phi)
+
+    e = [p_err'; rpy_til']; % Vetor de erro
+
+    pdsdot = double(pddots(toc(inicioCirculo)))
+
+    u = pinv(J) * ([pdsdot 0 0 0]' + ganho * e); % Lei de controle
+
+    dt = toc(testeTic);
+    testeTic = tic;
+
+    for k = 1:7
+
+        u(junta) = rem(u(junta), qdot_lim(junta));
+
+        newU = q(k) + u(k) * dt;
+
+        if newU < i120.qlim(k, 1)
+            u(k) = (i120.qlim(k, 1) - q(k)) / dt;
+        elseif newU > i120.qlim(k, 2)
+            u(k) = (i120.qlim(k, 2) - q(k)) / dt;
+        end
+
+    end
+
+    q = q + 0.1 * u'; % C�lculo de posicaoInicial (Regra do trapézio)
+
+    if (clientID >- 1)
+
+        for i = 1:6
+            sim.simxSetJointTargetPosition(clientID, h(i), q(i), sim.simx_opmode_streaming)
+        end
+
+    end
+
+    i120.plot(q);
+    control_sig(:, i) = u; % Sinal de controle
+    err(i) = norm(e); % Norma do erro
+    trajetoria(:, i) = p;
+end
 
 %% Plot sinal de controle e norma do erro
 
@@ -131,8 +218,6 @@ for (i = 1:6)
 end
 
 hold off
-xlabel('Iterações')
-ylabel('Sinal de controle: u(rad/s)')
 
 figure(3)
 plot(err)
@@ -140,22 +225,14 @@ xlabel('Iterações')
 ylabel('Norma do erro: |e|')
 box off
 
-%% Posição final Desejada
-
-desiredPosition = [0.38 .38 .5 0 0 0];
-
-T = i120.fkine(desiredPosition);
-
-J = i120.jacob0(q, 'rpy');
-
-p = transl(T);
-
-R = SO3(T);
-R = R.R();
-
-i120.plot(desiredPosition)
 hold on
-T.plot(desiredPosition)
+figure (4)
+sgtitle('Trajetória do efetuador')
+hold on
+plot3(trajetoria(1, :), trajetoria(2, :), trajetoria(3, :))
+view(3)
+hold off
+legend('Caminho percorrido(m)', 'Location', 'Best');
 
 sim.delete();
 disp('Programa Finalizado');
