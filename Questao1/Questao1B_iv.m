@@ -136,6 +136,8 @@ while (norm(e) > epsilon)% Critério de parada
     control_sig(:, i) = u; % Sinal de controle
     err(i) = norm(e); % Norma do erro
     trajetoria(:, i) = p;
+    erroGeral(:, i) = e;
+    vetorRPY(:, i) = 180 * rpy / pi;
 end
 
 hold off
@@ -170,17 +172,19 @@ while (toc(inicioCirculo) < 90)
     dt = toc(testeTic);
     testeTic = tic;
 
-    for k = 1:6
+    for junta = 1:6
 
         u(junta) = rem(u(junta), qdot_lim(junta));
 
-        newU = q(k) + u(k) * dt;
+        newU = q(junta) + u(junta) * dt;
 
-        if newU < i120.qlim(k, 1)
-            u(k) = (i120.qlim(k, 1) - q(k)) / dt;
-        elseif newU > i120.qlim(k, 2)
-            u(k) = (i120.qlim(k, 2) - q(k)) / dt;
+        if newU < i120.qlim(junta, 1)
+            u(junta) = (i120.qlim(junta, 1) - q(junta)) / dt;
+        elseif newU > i120.qlim(junta, 2)
+            u(junta) = (i120.qlim(junta, 2) - q(junta)) / dt;
         end
+
+        deslocamentos(junta, i) = 180 * q(junta) / pi;
 
     end
 
@@ -198,25 +202,30 @@ while (toc(inicioCirculo) < 90)
     control_sig(:, i) = u; % Sinal de controle
     err(i) = norm(e); % Norma do erro
     trajetoria(:, i) = p;
+    erroGeral(:, i) = e;
+    vetorRPY(:, i) = 180 * rpy / pi;
 end
 
 %% Plot sinal de controle e norma do erro
 
 figure(2)
-title('Sinais de Controle');
+sgtitle('Sinais de Controle');
 
 for (i = 1:6)
     subplot(3, 2, i)
     plot(control_sig(i, :))
     title('Junta', i)
     xlabel('Iterações')
-    ylabel('Sinal de controle: u(rad/s)')
+    ylabel('u(rad/s)')
     hold on
 end
 
 hold off
+xlabel('Iterações')
+ylabel('u(rad/s)')
 
 figure(3)
+sgtitle('Norma do Erro')
 plot(err)
 xlabel('Iterações')
 ylabel('Norma do erro: |e|')
@@ -225,11 +234,132 @@ box off
 hold on
 figure (4)
 sgtitle('Trajetória do efetuador')
+subplot(2, 2, 1)
 hold on
+grid on
 plot3(trajetoria(1, :), trajetoria(2, :), trajetoria(3, :))
 view(3)
 hold off
 legend('Caminho percorrido(m)', 'Location', 'Best');
+
+subplot(2, 2, 2)
+hold on
+grid on
+plot(vetorRPY(1, :))
+hold off
+xlabel('Iterações')
+ylabel('Ângulo(Roll)')
+legend('Roll', 'Location', 'Best');
+
+subplot(2, 2, 3)
+hold on
+grid on
+plot(vetorRPY(2, :))
+hold off
+xlabel('Iterações')
+ylabel('Ângulo(Pitch)')
+legend('Pitch', 'Location', 'Best');
+
+subplot(2, 2, 4)
+hold on
+grid on
+plot(vetorRPY(3, :))
+hold off
+xlabel('Iterações')
+ylabel('Ângulo(Yaw)')
+legend('Yaw', 'Location', 'Best');
+
+hold on
+
+figure(5)
+sgtitle('Erros de posição')
+subplot(1, 3, 1)
+hold on
+grid on
+plot(erroGeral(1, :))
+hold off
+xlabel('Iterações')
+ylabel('Erro(m)')
+legend('Erro em x', 'Location', 'Best');
+
+subplot(1, 3, 2)
+hold on
+grid on
+plot(erroGeral(2, :))
+
+hold off
+xlabel('Iterações')
+ylabel('Erro(m)')
+legend('Erro em y', 'Location', 'Best');
+
+subplot(1, 3, 3)
+hold on
+grid on
+plot(erroGeral(3, :))
+hold off
+xlabel('Iterações')
+ylabel('Erro(m)')
+legend('Erro em z', 'Location', 'Best');
+
+hold on
+
+figure(6)
+sgtitle('Deslocamento das juntas')
+subplot(2, 3, 1)
+hold on
+grid on
+title('Junta 1')
+plot(deslocamentos(1, :))
+hold off
+xlabel('Iterações')
+legend('q_1', 'Location', 'Best');
+
+subplot(2, 3, 2)
+hold on
+grid on
+title('Junta 2')
+plot(deslocamentos(2, :))
+hold off
+xlabel('Iterações')
+legend('q_2', 'Location', 'Best');
+
+subplot(2, 3, 3)
+hold on
+grid on
+title('Junta 3')
+plot(deslocamentos(3, :))
+hold off
+xlabel('Iterações')
+legend('q_3', 'Location', 'Best');
+
+subplot(2, 3, 4)
+hold on
+grid on
+title('Junta 4')
+plot(deslocamentos(4, :))
+hold off
+xlabel('Iterações')
+legend('q_4', 'Location', 'Best');
+
+subplot(2, 3, 5)
+hold on
+grid on
+title('Junta 5')
+plot(deslocamentos(5, :))
+hold off
+xlabel('Iterações')
+legend('q_5', 'Location', 'Best');
+
+subplot(2, 3, 6)
+hold on
+grid on
+title('Junta 6')
+plot(deslocamentos(6, :))
+hold off
+xlabel('Iterações')
+legend('q_6', 'Location', 'Best');
+
+hold on
 
 sim.delete();
 disp('Programa Finalizado');

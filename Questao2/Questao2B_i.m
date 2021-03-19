@@ -123,6 +123,8 @@ while (norm(e) > epsilon)% Critério de parada
             u(junta) = (i120.qlim(junta, 2) - q(junta)) / dt;
         end
 
+        deslocamentos(junta, i) = 180 * q(junta) / pi;
+
     end
 
     q = q + 0.1 * u'; % C�lculo de posicaoInicial (Regra do trapézio)
@@ -173,17 +175,19 @@ while (toc(inicioCirculo) < 90)
     dt = toc(testeTic);
     testeTic = tic;
 
-    for k = 1:7
+    for junta = 1:7
 
         u(junta) = rem(u(junta), qdot_lim(junta));
 
-        newU = q(k) + u(k) * dt;
+        newU = q(junta) + u(junta) * dt;
 
-        if newU < i120.qlim(k, 1)
-            u(k) = (i120.qlim(k, 1) - q(k)) / dt;
-        elseif newU > i120.qlim(k, 2)
-            u(k) = (i120.qlim(k, 2) - q(k)) / dt;
+        if newU < i120.qlim(junta, 1)
+            u(junta) = (i120.qlim(junta, 1) - q(junta)) / dt;
+        elseif newU > i120.qlim(junta, 2)
+            u(junta) = (i120.qlim(junta, 2) - q(junta)) / dt;
         end
+
+        deslocamentos(junta, i) = 180 * q(junta) / pi;
 
     end
 
@@ -201,6 +205,8 @@ while (toc(inicioCirculo) < 90)
     control_sig(:, i) = u; % Sinal de controle
     err(i) = norm(e); % Norma do erro
     trajetoria(:, i) = p;
+    erroGeral(:, i) = e;
+    vetorRPY(:, i) = 180 * rpy / pi;
 end
 
 %% Plot sinal de controle e norma do erro

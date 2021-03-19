@@ -123,6 +123,7 @@ while (norm(e) > epsilon)% Critério de parada
         elseif newU > i120.qlim(junta, 2)
             u(junta) = (i120.qlim(junta, 2) - q(junta)) / dt;
         end
+        deslocamentos(junta, i) = 180 * q(junta) / pi;
 
     end
 
@@ -185,6 +186,7 @@ while (toc(inicioCirculo) < 90)
         elseif newU > i120.qlim(k, 2)
             u(k) = (i120.qlim(k, 2) - q(k)) / dt;
         end
+        deslocamentos(junta, i) = 180 * q(junta) / pi;
 
     end
 
