@@ -132,7 +132,7 @@ while (norm(e) > epsilon)% Critério de parada
 
     if (clientID >- 1)
 
-        for i = 1:6
+        for i = 1:7
             sim.simxSetJointTargetPosition(clientID, h(i), q(i), sim.simx_opmode_streaming)
         end
 
@@ -205,7 +205,7 @@ while (toc(inicioCirculo) < 90)
 
     if (clientID >- 1)
 
-        for i = 1:6
+        for i = 1:7
             sim.simxSetJointTargetPosition(clientID, h(i), q(i), sim.simx_opmode_streaming)
         end
 
@@ -224,8 +224,8 @@ end
 figure(2)
 sgtitle('Sinais de Controle');
 
-for (i = 1:6)
-    subplot(3, 2, i)
+for (i = 1:7)
+    subplot(3, 3, i)
     plot(control_sig(i, :))
     title('Junta', i)
     xlabel('Iterações')

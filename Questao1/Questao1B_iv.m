@@ -16,12 +16,13 @@ if (clientID >- 1)
 
     h = [0 0 0 0 0 0 0];
 
-    [r, h(1)] = sim.simxGetObjectHandle(clientID, 'joint_1', sim.simx_opmode_blocking);
-    [r, h(2)] = sim.simxGetObjectHandle(clientID, 'joint_2', sim.simx_opmode_blocking);
-    [r, h(3)] = sim.simxGetObjectHandle(clientID, 'joint_3', sim.simx_opmode_blocking);
-    [r, h(4)] = sim.simxGetObjectHandle(clientID, 'joint_4', sim.simx_opmode_blocking);
-    [r, h(5)] = sim.simxGetObjectHandle(clientID, 'joint_5', sim.simx_opmode_blocking);
-    [r, h(6)] = sim.simxGetObjectHandle(clientID, 'joint_6', sim.simx_opmode_blocking);
+    [r, h(1)] = sim.simxGetObjectHandle(clientID, 'joint_7', sim.simx_opmode_blocking);
+    [r, h(2)] = sim.simxGetObjectHandle(clientID, 'joint_1', sim.simx_opmode_blocking);
+    [r, h(3)] = sim.simxGetObjectHandle(clientID, 'joint_2', sim.simx_opmode_blocking);
+    [r, h(4)] = sim.simxGetObjectHandle(clientID, 'joint_3', sim.simx_opmode_blocking);
+    [r, h(5)] = sim.simxGetObjectHandle(clientID, 'joint_4', sim.simx_opmode_blocking);
+    [r, h(6)] = sim.simxGetObjectHandle(clientID, 'joint_5', sim.simx_opmode_blocking);
+    [r, h(7)] = sim.simxGetObjectHandle(clientID, 'joint_6', sim.simx_opmode_blocking);
 
 else
     disp('CoppeliaSim não ativo, realizando simulações locais');
@@ -127,7 +128,7 @@ while (norm(e) > epsilon)% Critério de parada
     if (clientID >- 1)
 
         for i = 1:6
-            sim.simxSetJointTargetPosition(clientID, h(i), q(i), sim.simx_opmode_streaming)
+            sim.simxSetJointTargetPosition(clientID, h(i + 1), q(i), sim.simx_opmode_streaming)
         end
 
     end
@@ -193,7 +194,7 @@ while (toc(inicioCirculo) < 90)
     if (clientID >- 1)
 
         for i = 1:6
-            sim.simxSetJointTargetPosition(clientID, h(i), q(i), sim.simx_opmode_streaming)
+            sim.simxSetJointTargetPosition(clientID, h(i + 1), q(i), sim.simx_opmode_streaming)
         end
 
     end
